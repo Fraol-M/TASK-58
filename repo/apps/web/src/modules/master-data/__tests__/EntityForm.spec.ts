@@ -44,7 +44,7 @@ function mountForm(entityType = 'school', initialData?: Record<string, any>) {
 }
 
 describe('EntityForm – effectiveFrom is required', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('submit button is disabled when effectiveFrom is empty', async () => {
     const wrapper = mountForm('school')
