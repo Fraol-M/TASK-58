@@ -59,7 +59,7 @@ function mountPage() {
         DiscrepancyCard: { template: '<div class="discrepancy-card" data-testid="discrepancy-card">{{ discrepancy.discrepancyType }} <span v-if="discrepancy.supervisorRequired" data-testid="supervisor-badge">Supervisor</span></div>', props: ['discrepancy'] },
         DiscrepancyResolution: { template: '<div data-testid="resolution-form">Resolution Form</div>', props: ['supervisorRequired'], emits: ['resolve'] },
         AppCard: { template: '<div class="app-card"><slot /></div>' },
-        AppButton: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
+        AppButton: { template: '<button @click="$emit(\'click\')"><slot /></button>', emits: ['click'] },
         LoadingState: { template: '<div data-testid="loading">Loading...</div>', props: ['text'] },
         ErrorState: { template: '<div data-testid="error">Error</div>', props: ['message'] },
         EmptyState: { template: '<div data-testid="empty">No discrepancies</div>', props: ['title', 'message'] },

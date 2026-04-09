@@ -13,7 +13,7 @@ import EntityForm from '../components/EntityForm.vue'
 const stubs = {
   FormField: {
     template: '<div class="form-field" :data-error="error"><label v-if="required" data-testid="required-marker">*</label><slot /></div>',
-    props: ['label', 'required', 'error'],
+    props: { label: String, required: Boolean, error: String },
   },
   FormInput: {
     template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" data-testid="form-input" />',

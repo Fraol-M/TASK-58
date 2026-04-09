@@ -54,9 +54,10 @@ describe('DashboardPage', () => {
     localStorage.clear()
   })
 
-  it('shows loading state while fetching', () => {
+  it('shows loading state while fetching', async () => {
     mockAdapter.getDashboard.mockReturnValue(new Promise(() => {}))
     const { wrapper } = mountPage()
+    await wrapper.vm.$nextTick()
     expect(wrapper.find('[data-testid="loading"]').exists()).toBe(true)
   })
 
