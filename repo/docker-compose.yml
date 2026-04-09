@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
-    env_file:
-      - .env
     environment:
       - VITE_API_BASE_URL=http://localhost:8080/api
       - VITE_MOCK_MODE=false
@@ -19,14 +17,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    env_file:
-      - .env
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${DB_NAME:-campusfit}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - SPRING_DATASOURCE_USERNAME=${DB_USER:-campusfit}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-campusfit_dev}
       - SPRING_FLYWAY_ENABLED=true
-      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+      # Falls back to a dev-only key when .env is absent (CI / Codespaces / first run).
+      # For production: set APP_ENCRYPTION_KEY in .env or as a host environment variable.
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:-aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344}
       - APP_SESSION_TIMEOUT_MINUTES=${APP_SESSION_TIMEOUT_MINUTES:-30}
       - APP_LOCKOUT_ATTEMPTS=${APP_LOCKOUT_ATTEMPTS:-5}
       - APP_LOCKOUT_DURATION_MINUTES=${APP_LOCKOUT_DURATION_MINUTES:-15}
@@ -42,13 +40,11 @@ services:
     image: mysql:8.0
     ports:
       - "3306:3306"
-    env_file:
-      - .env
     environment:
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-campusfit_dev}
       - MYSQL_DATABASE=${DB_NAME:-campusfit}
       - MYSQL_USER=${DB_USER:-campusfit}
-      - MYSQL_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-campusfit_dev}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
