@@ -42,7 +42,7 @@ function mountPage() {
       plugins: [pinia],
       stubs: {
         PlanCard: { template: '<div class="plan-card" data-testid="plan-card">{{ plan.title }}</div>', props: ['plan'], emits: ['click'] },
-        PlanForm: { template: '<div data-testid="plan-form">Plan Form</div>', props: ['loading'], emits: ['submit'] },
+        PlanForm: { name: 'PlanForm', template: '<div data-testid="plan-form">Plan Form</div>', props: ['loading'], emits: ['submit'] },
         StreakIndicator: { template: '<div data-testid="streak">Streak</div>', props: ['currentStreak', 'longestStreak'] },
         AppButton: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
         AppModal: { template: '<div v-if="open" data-testid="modal"><slot /></div>', props: ['open', 'title', 'size'] },

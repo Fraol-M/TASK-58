@@ -42,6 +42,7 @@ function mountPage() {
       plugins: [pinia],
       stubs: {
         ReviewSession: {
+          name: 'ReviewSession',
           template: '<div data-testid="review-session"><button v-for="q in [1,2,3,4,5]" :key="q" :data-quality="q" @click="$emit(\'rate\', q)">{{ q }}</button></div>',
           props: ['topic', 'description', 'currentIndex', 'totalCount', 'submitting'],
           emits: ['rate'],

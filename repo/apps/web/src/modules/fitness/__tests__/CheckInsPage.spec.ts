@@ -45,7 +45,7 @@ function mountPage() {
     global: {
       plugins: [pinia],
       stubs: {
-        CheckInForm: { template: '<form data-testid="checkin-form"><button type="submit">Submit</button></form>', props: ['unitLabel', 'loading'], emits: ['submit'] },
+        CheckInForm: { name: 'CheckInForm', template: '<form data-testid="checkin-form"><button type="submit">Submit</button></form>', props: ['unitLabel', 'loading'], emits: ['submit'] },
         CheckInTimeline: { template: '<div data-testid="checkin-timeline">Timeline</div>', props: ['checkIns'] },
         MilestoneTimeline: { template: '<div data-testid="milestones">Milestones</div>', props: ['milestones', 'overallProgress'] },
         AppCard: { template: '<div class="app-card"><slot /></div>', props: ['title', 'padding'] },

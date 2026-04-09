@@ -32,6 +32,7 @@ function mountPage() {
       plugins: [pinia],
       stubs: {
         NotificationItem: {
+          name: 'NotificationItem',
           template: '<div class="notification-item" :data-testid="`notif-${notification.id}`" :class="{ \'unread\': !notification.read }" @click="$emit(\'click\', notification.id)">{{ notification.title }}</div>',
           props: ['notification'],
           emits: ['click'],

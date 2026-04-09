@@ -51,7 +51,7 @@ function mountPage() {
     global: {
       plugins: [pinia],
       stubs: {
-        ReceivingTable: { template: '<table data-testid="receiving-table"><tbody><tr v-for="r in receipts" :key="r.id" @click="$emit(\'row-click\', r.id)"><td>{{ r.receiptNumber }}</td></tr></tbody></table>', props: ['receipts'], emits: ['row-click'] },
+        ReceivingTable: { name: 'ReceivingTable', template: '<table data-testid="receiving-table"><tbody><tr v-for="r in receipts" :key="r.id" @click="$emit(\'row-click\', r.id)"><td>{{ r.receiptNumber }}</td></tr></tbody></table>', props: ['receipts'], emits: ['row-click'] },
         ReceiptForm: { template: '<div data-testid="receipt-form">Receipt Form</div>', props: ['loading'], emits: ['submit'] },
         AppButton: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
         AppModal: { template: '<div v-if="open" data-testid="modal"><slot /></div>', props: ['open', 'title'] },

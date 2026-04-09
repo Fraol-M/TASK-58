@@ -38,7 +38,9 @@ vi.mock('../composables/useDiscrepancies', () => ({
 }))
 
 vi.mock('@/modules/auth/store', () => ({
-  useAuthStore: () => ({ user: mockUser }),
+  useAuthStore: () => ({
+    get user() { return mockUser.value },
+  }),
 }))
 
 const UNRESOLVED_DISC = {
