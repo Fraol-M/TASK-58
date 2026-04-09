@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MYSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+app:
+  encryption-key: aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344
+  session:
+    timeout-minutes: 30
+  lockout:
+    max-attempts: 5
+    duration-minutes: 15
+  export:
+    retention-days: 30
+  notification:
+    email-enabled: false
+    sms-enabled: false
+    wecom-enabled: false

@@ -1,0 +1,3221 @@
+openapi: 3.0.3
+info:
+  title: CampusFit API
+  description: >-
+    CampusFit platform API covering authentication, fitness tracking, study planning,
+    inbound receipt management, master data administration, notifications, data export,
+    and reporting.
+  version: 1.0.0
+  contact:
+    name: CampusFit Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication and session management
+  - name: Fitness
+    description: Fitness assessments, goals, and check-ins
+  - name: Study
+    description: Study plans, daily completions, and forgetting points
+  - name: Inbound
+    description: Inbound receipt processing and warehouse operations
+  - name: Admin
+    description: Master data CRUD operations
+  - name: MasterDataOps
+    description: Master data import, merge, and change history
+  - name: Notifications
+    description: Notification management and delivery
+  - name: Exports
+    description: Data export and account management
+  - name: Dashboard
+    description: Reporting and performance dashboards
+
+paths:
+  # ─── Auth ───────────────────────────────────────────────────────────
+  /api/auth/sign-up:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: signUp
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Authenticate and obtain a session token
+      operationId: signIn
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseLoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/sign-out:
+    post:
+      tags: [Auth]
+      summary: Invalidate the current session
+      description: >
+        Idempotent sign-out. Returns 200 whether or not a Bearer token is present.
+        If a valid token is supplied it is invalidated; if absent or already invalid
+        the call still succeeds. This avoids client-side errors on double-logout or
+        expired-session scenarios.
+      operationId: signOut
+      responses:
+        '200':
+          description: Signed out successfully (or already signed out)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/me:
+    get:
+      tags: [Auth]
+      summary: Get the current authenticated user
+      operationId: getMe
+      responses:
+        '200':
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Fitness ────────────────────────────────────────────────────────
+  /api/fitness/assessment:
+    get:
+      tags: [Fitness]
+      summary: Get the latest fitness assessment
+      operationId: getAssessment
+      responses:
+        '200':
+          description: Assessment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAssessmentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Fitness]
+      summary: Create or update a fitness assessment
+      operationId: updateAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentRequest'
+      responses:
+        '200':
+          description: Assessment saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAssessmentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/fitness/goals:
+    post:
+      tags: [Fitness]
+      summary: Create a fitness goal
+      operationId: createGoal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoalRequest'
+      responses:
+        '201':
+          description: Goal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGoalResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Fitness]
+      summary: List fitness goals for the current user
+      operationId: listGoals
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of goals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseGoalResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/fitness/goals/{id}:
+    get:
+      tags: [Fitness]
+      summary: Get a specific fitness goal
+      operationId: getGoal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Goal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGoalResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/fitness/goals/{goalId}/check-ins:
+    post:
+      tags: [Fitness]
+      summary: Create a check-in for a goal
+      operationId: createCheckIn
+      parameters:
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInRequest'
+      responses:
+        '201':
+          description: Check-in recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCheckInResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Fitness]
+      summary: List check-ins for a goal
+      operationId: listCheckIns
+      parameters:
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of check-ins for the goal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListCheckInResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Study ──────────────────────────────────────────────────────────
+  /api/study/plans:
+    post:
+      tags: [Study]
+      summary: Create a study plan
+      operationId: createStudyPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudyPlanRequest'
+      responses:
+        '201':
+          description: Study plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStudyPlanResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Study]
+      summary: List study plans
+      operationId: listStudyPlans
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of study plans for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseStudyPlanResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/plans/{id}:
+    get:
+      tags: [Study]
+      summary: Get a specific study plan
+      operationId: getStudyPlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Study plan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStudyPlanResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/plans/{planId}/completions:
+    post:
+      tags: [Study]
+      summary: Record a daily completion
+      operationId: createDailyCompletion
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyCompletionRequest'
+      responses:
+        '200':
+          description: Completion recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDailyCompletionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Study]
+      summary: List daily completions for a plan
+      operationId: listDailyCompletions
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of completions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyCompletionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/plans/{planId}/forgetting-points:
+    post:
+      tags: [Study]
+      summary: Create a forgetting point
+      operationId: createForgettingPoint
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgettingPointRequest'
+      responses:
+        '200':
+          description: Forgetting point created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseForgettingPointResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Study]
+      summary: List forgetting points for a plan
+      operationId: listForgettingPoints
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of forgetting points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ForgettingPointResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/forgetting-points/{id}/review:
+    post:
+      tags: [Study]
+      summary: Review a forgetting point (spaced repetition)
+      operationId: reviewForgettingPoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '200':
+          description: Forgetting point reviewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseForgettingPointResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/export:
+    get:
+      tags: [Study]
+      summary: Export study data as JSON
+      operationId: exportStudyData
+      responses:
+        '200':
+          description: Study data JSON payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStudyExportData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/study/import:
+    post:
+      tags: [Study]
+      summary: Import study data from JSON
+      operationId: importStudyData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudyExportData'
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Inbound ────────────────────────────────────────────────────────
+  /api/inbound/receipts:
+    post:
+      tags: [Inbound]
+      summary: Create an inbound receipt
+      operationId: createInboundReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InboundReceiptRequest'
+      responses:
+        '201':
+          description: Receipt created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundReceiptResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Inbound]
+      summary: List inbound receipts
+      operationId: listInboundReceipts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of receipts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseInboundReceiptResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}:
+    get:
+      tags: [Inbound]
+      summary: Get a specific inbound receipt
+      operationId: getInboundReceipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Receipt details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundReceiptResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/transition:
+    post:
+      tags: [Inbound]
+      summary: Transition receipt to a new state
+      operationId: transitionReceipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Transition successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundReceiptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/receive:
+    post:
+      tags: [Inbound]
+      summary: Update received quantity for a receipt line
+      operationId: receiveLine
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveLineRequest'
+      responses:
+        '200':
+          description: Received quantity updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundLineResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/lines:
+    post:
+      tags: [Inbound]
+      summary: Add a line to an inbound receipt
+      operationId: addInboundLine
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InboundLineRequest'
+      responses:
+        '201':
+          description: Line added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundLineResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/inspection:
+    post:
+      tags: [Inbound]
+      summary: Submit inspection results for a receipt line
+      operationId: submitInspection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionRequest'
+      responses:
+        '200':
+          description: Inspection recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseInboundLineResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/discrepancies:
+    get:
+      tags: [Inbound]
+      summary: List discrepancies for a receipt
+      operationId: getDiscrepancies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of discrepancies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListDiscrepancy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/putaway:
+    get:
+      tags: [Inbound]
+      summary: List putaway tasks for a receipt
+      operationId: getPutawayTasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of putaway tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListPutawayTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Inbound]
+      summary: Complete or generate putaway tasks
+      operationId: completePutaway
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutawayRequest'
+      responses:
+        '200':
+          description: Putaway tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListPutawayTask'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/inbound/receipts/{id}/post:
+    post:
+      tags: [Inbound]
+      summary: Post receipt to inventory (finalize)
+      operationId: postReceipt
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/inbound/receipts/{id}/unpost:
+    post:
+      tags: [Inbound]
+      summary: Unpost receipt from inventory (admin only)
+      operationId: unpostReceipt
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/inbound/receipts/{id}/supervisor-review:
+    post:
+      tags: [Inbound]
+      summary: Supervisor review for discrepancies
+      operationId: supervisorReview
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discrepancyId:
+                  type: integer
+                  format: int64
+                reasonCode:
+                  type: string
+                notes:
+                  type: string
+              required:
+                - discrepancyId
+                - reasonCode
+      responses:
+        '200':
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Admin / Master Data CRUD ──────────────────────────────────────
+  /api/admin/terms:
+    get:
+      tags: [Admin]
+      summary: List all terms
+      operationId: listTerms
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of terms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin]
+      summary: Create a term
+      operationId: createTerm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterDataRequest'
+      responses:
+        '201':
+          description: Term created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/schools:
+    get:
+      tags: [Admin]
+      summary: List all schools
+      operationId: listSchools
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of schools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin]
+      summary: Create a school
+      operationId: createSchool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterDataRequest'
+      responses:
+        '201':
+          description: School created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/majors:
+    get:
+      tags: [Admin]
+      summary: List all majors
+      operationId: listMajors
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of majors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin]
+      summary: Create a major
+      operationId: createMajor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterDataRequest'
+      responses:
+        '201':
+          description: Major created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/classes:
+    get:
+      tags: [Admin]
+      summary: List all academic classes
+      operationId: listClasses
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of classes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin]
+      summary: Create an academic class
+      operationId: createClass
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterDataRequest'
+      responses:
+        '201':
+          description: Class created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/courses:
+    get:
+      tags: [Admin]
+      summary: List all courses
+      operationId: listCourses
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated list of courses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Admin]
+      summary: Create a course
+      operationId: createCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterDataRequest'
+      responses:
+        '201':
+          description: Course created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMasterDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Master Data Operations ────────────────────────────────────────
+  /api/admin/master-data/imports:
+    post:
+      tags: [MasterDataOps]
+      summary: Import master data from a CSV file
+      operationId: importMasterData
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                entityType:
+                  type: string
+                  enum: [TERM, SCHOOL, MAJOR, CLASS, COURSE]
+              required:
+                - file
+                - entityType
+      responses:
+        '200':
+          description: Import job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseImportJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/master-data/imports/{id}:
+    get:
+      tags: [MasterDataOps]
+      summary: Get import job status
+      operationId: getImportJob
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Import job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseImportJobResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/master-data/merge:
+    post:
+      tags: [MasterDataOps]
+      summary: Merge duplicate master data records
+      operationId: mergeMasterData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeRequest'
+      responses:
+        '200':
+          description: Merge completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMergeOperation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/master-data/history:
+    get:
+      tags: [MasterDataOps]
+      summary: List change history for master data
+      operationId: listChangeHistory
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated change history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseChangeHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Notifications ─────────────────────────────────────────────────
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for the current user
+      operationId: listNotifications
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseNotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Notifications]
+      summary: Create a notification (admin only)
+      operationId: createNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - title
+                - targetUserIds
+              properties:
+                type:
+                  type: string
+                  enum: [ANNOUNCEMENT, REMINDER, FOLLOW_UP]
+                title:
+                  type: string
+                body:
+                  type: string
+                targetUserIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      operationId: markNotificationRead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/notifications/{id}/status:
+    get:
+      tags: [Notifications]
+      summary: Get delivery status for a notification
+      operationId: getNotificationDeliveryStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Delivery status details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDeliveryStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Exports / Account ─────────────────────────────────────────────
+  /api/exports:
+    get:
+      tags: [Exports]
+      summary: List export jobs for the current user
+      operationId: listExports
+      responses:
+        '200':
+          description: List of export jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListExportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/exports/{id}:
+    get:
+      tags: [Exports]
+      summary: Get export job details
+      operationId: getExport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Export job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseExportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/exports/{id}/download:
+    get:
+      tags: [Exports]
+      summary: Download an export file
+      operationId: downloadExport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encrypted export file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/exports/account:
+    post:
+      tags: [Exports]
+      summary: Create an account data export job
+      operationId: createExportJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '201':
+          description: Export job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseExportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/imports/account:
+    post:
+      tags: [Exports]
+      summary: Import account data from raw JSON
+      operationId: importAccountData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/imports/account/file:
+    post:
+      tags: [Exports]
+      summary: Import account data from an encrypted export file
+      operationId: importAccountFromFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The .enc export file
+                password:
+                  type: string
+                  description: Password used when the file was exported
+              required:
+                - file
+                - password
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/account:
+    delete:
+      tags: [Exports]
+      summary: Request account deletion (requires password confirmation)
+      operationId: deleteAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  description: Current password for confirmation
+      responses:
+        '200':
+          description: Account deletion completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Dashboard / Performance ───────────────────────────────────────
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get the dashboard for the current user
+      operationId: getDashboard
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/performance:
+    get:
+      tags: [Dashboard]
+      summary: Get system performance metrics (admin only)
+      operationId: getPerformance
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePerformanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: UUID
+      description: Session token obtained from /api/auth/sign-in
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+      description: Page number (zero-based)
+    SizeParam:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Number of items per page
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ─── Shared ────────────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+
+    ApiResponseVoid:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    PageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: {}
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ─── Auth Schemas ──────────────────────────────────────────────
+    SignUpRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 8
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        role:
+          type: string
+          default: REGULAR_USER
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserDto'
+        expiresAt:
+          type: string
+          format: date-time
+
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [ACTIVE, LOCKED, DISABLED, DELETED]
+
+    ApiResponseUserDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/UserDto'
+        error:
+          type: string
+          nullable: true
+
+    ApiResponseLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LoginResponse'
+        error:
+          type: string
+          nullable: true
+
+    # ─── Fitness Schemas ───────────────────────────────────────────
+    AssessmentRequest:
+      type: object
+      required:
+        - heightFeet
+        - heightInches
+        - weightLbs
+      properties:
+        heightFeet:
+          type: integer
+          minimum: 1
+          maximum: 8
+        heightInches:
+          type: integer
+          minimum: 0
+          maximum: 11
+        weightLbs:
+          type: number
+          format: double
+          exclusiveMinimum: true
+          minimum: 0
+        bodyFatPercent:
+          type: number
+          format: double
+        waist:
+          type: number
+          format: double
+        chest:
+          type: number
+          format: double
+        arm:
+          type: number
+          format: double
+        notes:
+          type: string
+
+    AssessmentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        assessmentType:
+          type: string
+        heightFeet:
+          type: integer
+        heightInches:
+          type: integer
+        formattedHeight:
+          type: string
+        weightLbs:
+          type: number
+          format: double
+        bodyFatPercent:
+          type: number
+          format: double
+          nullable: true
+        waistInches:
+          type: number
+          format: double
+          nullable: true
+        chestInches:
+          type: number
+          format: double
+          nullable: true
+        armInches:
+          type: number
+          format: double
+          nullable: true
+        assessmentDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponseAssessmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/AssessmentResponse'
+        error:
+          type: string
+          nullable: true
+
+    GoalRequest:
+      type: object
+      required:
+        - goalType
+        - targetValue
+        - unit
+        - startDate
+        - targetDate
+      properties:
+        goalType:
+          type: string
+          enum: [WEIGHT_LOSS, WEIGHT_GAIN, FLEXIBILITY, ENDURANCE, STRENGTH]
+        description:
+          type: string
+        targetValue:
+          type: number
+          format: decimal
+          exclusiveMinimum: true
+          minimum: 0
+        unit:
+          type: string
+        startDate:
+          type: string
+          format: date
+        targetDate:
+          type: string
+          format: date
+
+    GoalResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        assessmentId:
+          type: integer
+          format: int64
+          nullable: true
+        goalType:
+          type: string
+          enum: [WEIGHT_LOSS, WEIGHT_GAIN, FLEXIBILITY, ENDURANCE, STRENGTH]
+        description:
+          type: string
+        targetValue:
+          type: number
+          format: decimal
+        startValue:
+          type: number
+          format: decimal
+        currentValue:
+          type: number
+          format: decimal
+        unit:
+          type: string
+        startDate:
+          type: string
+          format: date
+        targetDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [ACTIVE, ACHIEVED, RECALCULATED, ABANDONED]
+        missedCheckIns:
+          type: integer
+        progressPercentage:
+          type: number
+          format: double
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/MilestoneResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MilestoneResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        description:
+          type: string
+        targetValue:
+          type: number
+          format: decimal
+        achievedDate:
+          type: string
+          format: date
+          nullable: true
+        seq:
+          type: integer
+
+    ApiResponseGoalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/GoalResponse'
+        error:
+          type: string
+          nullable: true
+
+    PageResponseGoalResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    CheckInRequest:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: number
+          format: decimal
+          exclusiveMinimum: true
+          minimum: 0
+        notes:
+          type: string
+
+    CheckInResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        goalId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        weekNumber:
+          type: integer
+        value:
+          type: number
+          format: decimal
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseCheckInResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CheckInResponse'
+        error:
+          type: string
+          nullable: true
+
+    PageResponseCheckInResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckInResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ─── Study Schemas ─────────────────────────────────────────────
+    StudyPlanRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        termId:
+          type: integer
+          format: int64
+        schoolId:
+          type: integer
+          format: int64
+        majorId:
+          type: integer
+          format: int64
+        classId:
+          type: integer
+          format: int64
+        courseId:
+          type: integer
+          format: int64
+
+    StudyPlanResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        termId:
+          type: integer
+          format: int64
+          nullable: true
+        schoolId:
+          type: integer
+          format: int64
+          nullable: true
+        majorId:
+          type: integer
+          format: int64
+          nullable: true
+        classId:
+          type: integer
+          format: int64
+          nullable: true
+        courseId:
+          type: integer
+          format: int64
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED, ARCHIVED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponseStudyPlanResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/StudyPlanResponse'
+        error:
+          type: string
+          nullable: true
+
+    PageResponseStudyPlanResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudyPlanResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    DailyCompletionRequest:
+      type: object
+      required:
+        - completedDate
+        - completed
+      properties:
+        itemId:
+          type: integer
+          format: int64
+        completedDate:
+          type: string
+          format: date
+        completed:
+          type: boolean
+        notes:
+          type: string
+
+    DailyCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        planId:
+          type: integer
+          format: int64
+        itemId:
+          type: integer
+          format: int64
+          nullable: true
+        completedDate:
+          type: string
+          format: date
+        completed:
+          type: boolean
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseDailyCompletionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/DailyCompletionResponse'
+        error:
+          type: string
+          nullable: true
+
+    ForgettingPointRequest:
+      type: object
+      required:
+        - topic
+      properties:
+        topic:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
+    ForgettingPointResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        planId:
+          type: integer
+          format: int64
+        topic:
+          type: string
+        description:
+          type: string
+        nextReviewDate:
+          type: string
+          format: date
+        easeFactor:
+          type: number
+          format: decimal
+        intervalDays:
+          type: integer
+        repetitions:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponseForgettingPointResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ForgettingPointResponse'
+        error:
+          type: string
+          nullable: true
+
+    ReviewRequest:
+      type: object
+      required:
+        - quality
+      properties:
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 5
+
+    # ─── Inbound Schemas ───────────────────────────────────────────
+    InboundReceiptRequest:
+      type: object
+      required:
+        - receiptType
+      properties:
+        receiptType:
+          type: string
+          enum: [PURCHASE, TRANSFER, RETURN]
+        referenceNumber:
+          type: string
+        supplierName:
+          type: string
+        expectedDate:
+          type: string
+          format: date
+
+    InboundReceiptResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiptNumber:
+          type: string
+        receiptType:
+          type: string
+          enum: [PURCHASE, TRANSFER, RETURN]
+        referenceNumber:
+          type: string
+        supplierName:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, RECEIVING, INSPECTION, PUTAWAY, COMPLETED, REJECTED, POSTED, UNPOSTED]
+        expectedDate:
+          type: string
+          format: date
+        receivedDate:
+          type: string
+          format: date
+          nullable: true
+        createdBy:
+          type: integer
+          format: int64
+        supervisorApprovalRequired:
+          type: boolean
+        supervisorApprovedBy:
+          type: integer
+          format: int64
+          nullable: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboundLineResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponseInboundReceiptResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/InboundReceiptResponse'
+        error:
+          type: string
+          nullable: true
+
+    PageResponseInboundReceiptResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboundReceiptResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    TransitionRequest:
+      type: object
+      required:
+        - targetState
+      properties:
+        targetState:
+          type: string
+          enum: [DRAFT, RECEIVING, INSPECTION, PUTAWAY, COMPLETED, REJECTED, POSTED, UNPOSTED]
+        reason:
+          type: string
+
+    InboundLineRequest:
+      type: object
+      required:
+        - itemCode
+        - itemName
+        - expectedQty
+      properties:
+        itemCode:
+          type: string
+          minLength: 1
+        itemName:
+          type: string
+          minLength: 1
+        expectedQty:
+          type: number
+          format: decimal
+          exclusiveMinimum: true
+          minimum: 0
+        unitCost:
+          type: number
+          format: decimal
+
+    InboundLineResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiptId:
+          type: integer
+          format: int64
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        expectedQty:
+          type: number
+          format: decimal
+        receivedQty:
+          type: number
+          format: decimal
+        inspectedQty:
+          type: number
+          format: decimal
+        unitCost:
+          type: number
+          format: decimal
+        inspectionResult:
+          type: string
+          enum: [PENDING, PASS, FAIL]
+        inspectionNotes:
+          type: string
+
+    ApiResponseInboundLineResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/InboundLineResponse'
+        error:
+          type: string
+          nullable: true
+
+    InspectionRequest:
+      type: object
+      required:
+        - lineId
+        - inspectedQty
+        - result
+      properties:
+        lineId:
+          type: integer
+          format: int64
+        inspectedQty:
+          type: number
+          format: decimal
+        result:
+          type: string
+          enum: [PENDING, PASS, FAIL]
+        notes:
+          type: string
+
+    PutawayRequest:
+      type: object
+      required:
+        - taskId
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        actualLocation:
+          type: string
+
+    # ─── Admin / Master Data Schemas ───────────────────────────────
+    MasterDataRequest:
+      type: object
+      required:
+        - code
+        - name
+        - effectiveFrom
+      properties:
+        code:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        schoolId:
+          type: integer
+          format: int64
+          nullable: true
+        majorId:
+          type: integer
+          format: int64
+          nullable: true
+        year:
+          type: integer
+          nullable: true
+        classId:
+          type: integer
+          format: int64
+          nullable: true
+        termId:
+          type: integer
+          format: int64
+          nullable: true
+        credits:
+          type: integer
+          nullable: true
+
+    MasterDataResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        schoolId:
+          type: integer
+          format: int64
+          nullable: true
+        majorId:
+          type: integer
+          format: int64
+          nullable: true
+        year:
+          type: integer
+          nullable: true
+        classId:
+          type: integer
+          format: int64
+          nullable: true
+        termId:
+          type: integer
+          format: int64
+          nullable: true
+        credits:
+          type: integer
+          nullable: true
+
+    ApiResponseMasterDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/MasterDataResponse'
+        error:
+          type: string
+          nullable: true
+
+    PageResponseMasterDataResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MasterDataResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ImportJobResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        fileName:
+          type: string
+        entityType:
+          type: string
+        totalRows:
+          type: integer
+        successCount:
+          type: integer
+        errorCount:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportErrorResponse'
+
+    ImportErrorResponse:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+        field:
+          type: string
+        message:
+          type: string
+        rawValue:
+          type: string
+
+    ApiResponseImportJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ImportJobResponse'
+        error:
+          type: string
+          nullable: true
+
+    MergeRequest:
+      type: object
+      required:
+        - entityType
+        - sourceId
+        - targetId
+      properties:
+        entityType:
+          type: string
+          minLength: 1
+        sourceId:
+          type: integer
+          format: int64
+        targetId:
+          type: integer
+          format: int64
+
+    MergeOperation:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        entityType:
+          type: string
+        sourceId:
+          type: integer
+          format: int64
+        targetId:
+          type: integer
+          format: int64
+        mergedBy:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseMergeOperation:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/MergeOperation'
+        error:
+          type: string
+          nullable: true
+
+    ChangeHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        entityType:
+          type: string
+        entityId:
+          type: integer
+          format: int64
+        field:
+          type: string
+        oldValue:
+          type: string
+        newValue:
+          type: string
+        changedBy:
+          type: integer
+          format: int64
+        changedAt:
+          type: string
+          format: date-time
+
+    PageResponseChangeHistoryResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChangeHistoryResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ─── Notification Schemas ──────────────────────────────────────
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        notificationId:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [ANNOUNCEMENT, REMINDER, FOLLOW_UP]
+        title:
+          type: string
+        body:
+          type: string
+        read:
+          type: boolean
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    PageResponseNotificationResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    DeliveryStatusResponse:
+      type: object
+      properties:
+        targetId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        read:
+          type: boolean
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        channel:
+          type: string
+
+    ApiResponseDeliveryStatus:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryStatusResponse'
+        error:
+          type: string
+          nullable: true
+
+    # ─── Export Schemas ────────────────────────────────────────────
+    ExportRequest:
+      type: object
+      required:
+        - exportType
+        - exportPassword
+      properties:
+        exportType:
+          type: string
+          enum: [ACCOUNT_DATA, STUDY_DATA, FITNESS_DATA]
+        passwordProtected:
+          type: boolean
+          default: true
+        exportPassword:
+          type: string
+          description: Password to encrypt the export file
+
+    ExportResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        exportType:
+          type: string
+          enum: [ACCOUNT_DATA, STUDY_DATA, FITNESS_DATA]
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        downloadReady:
+          type: boolean
+        passwordProtected:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiResponseExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ExportResponse'
+        error:
+          type: string
+          nullable: true
+
+    # ─── Dashboard Schemas ─────────────────────────────────────────
+    DashboardResponse:
+      type: object
+      properties:
+        userRole:
+          type: string
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricEntry'
+        summary:
+          type: object
+          additionalProperties: true
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEntry'
+        charts:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: number
+
+    ActivityEntry:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+
+    MetricEntry:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: number
+          format: decimal
+        dimension:
+          type: string
+        periodType:
+          type: string
+        periodValue:
+          type: string
+
+    ApiResponseDashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/DashboardResponse'
+        error:
+          type: string
+          nullable: true
+
+    PerformanceResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          query:
+            type: string
+          avgDurationMs:
+            type: integer
+          maxDurationMs:
+            type: integer
+          callCount:
+            type: integer
+          status:
+            type: string
+
+    ApiResponseString:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: string
+        error:
+          type: string
+          nullable: true
+
+    ApiResponseListCheckInResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckInResponse'
+        error:
+          type: string
+          nullable: true
+
+    ApiResponseListExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportResponse'
+        error:
+          type: string
+          nullable: true
+
+    Discrepancy:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiptId:
+          type: integer
+          format: int64
+        lineId:
+          type: integer
+          format: int64
+        discrepancyType:
+          type: string
+          enum: [QUANTITY]
+        expectedValue:
+          type: number
+          format: decimal
+        actualValue:
+          type: number
+          format: decimal
+        variancePercent:
+          type: number
+          format: decimal
+        supervisorRequired:
+          type: boolean
+        resolvedBy:
+          type: integer
+          format: int64
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reasonCode:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    ApiResponseListDiscrepancy:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discrepancy'
+        error:
+          type: string
+          nullable: true
+
+    PutawayTask:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiptId:
+          type: integer
+          format: int64
+        lineId:
+          type: integer
+          format: int64
+        suggestedLocation:
+          type: string
+        actualLocation:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, COMPLETED]
+        completedBy:
+          type: integer
+          format: int64
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiResponseListPutawayTask:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PutawayTask'
+        error:
+          type: string
+          nullable: true
+
+    ReceiveLineRequest:
+      type: object
+      required:
+        - lineId
+        - receivedQty
+      properties:
+        lineId:
+          type: integer
+          format: int64
+        receivedQty:
+          type: number
+          format: decimal
+
+    StudyExportData:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            type: object
+        completions:
+          type: array
+          items:
+            type: object
+        forgettingPoints:
+          type: array
+          items:
+            type: object
+
+    ApiResponseStudyExportData:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/StudyExportData'
+        error:
+          type: string
+          nullable: true
+
+    ApiResponsePerformanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/PerformanceResponse'
+        error:
+          type: string
+          nullable: true

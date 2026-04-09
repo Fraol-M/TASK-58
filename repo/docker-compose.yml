@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080/api
+      - VITE_MOCK_MODE=false
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${DB_NAME:-campusfit}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-campusfit}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - SPRING_FLYWAY_ENABLED=true
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:?Set APP_ENCRYPTION_KEY via .env - generate with: openssl rand -hex 32}
+      - APP_SESSION_TIMEOUT_MINUTES=${APP_SESSION_TIMEOUT_MINUTES:-30}
+      - APP_LOCKOUT_ATTEMPTS=${APP_LOCKOUT_ATTEMPTS:-5}
+      - APP_LOCKOUT_DURATION_MINUTES=${APP_LOCKOUT_DURATION_MINUTES:-15}
+      - NOTIFICATION_EMAIL_ENABLED=${NOTIFICATION_EMAIL_ENABLED:-false}
+      - NOTIFICATION_SMS_ENABLED=${NOTIFICATION_SMS_ENABLED:-false}
+      - NOTIFICATION_WECOM_ENABLED=${NOTIFICATION_WECOM_ENABLED:-false}
+      - EXPORT_RETENTION_DAYS=${EXPORT_RETENTION_DAYS:-30}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - MYSQL_DATABASE=${DB_NAME:-campusfit}
+      - MYSQL_USER=${DB_USER:-campusfit}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
