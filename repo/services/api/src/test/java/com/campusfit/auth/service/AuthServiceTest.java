@@ -199,6 +199,7 @@ class AuthServiceTest {
     void validateSession_returnsUserPrincipal() {
         Session session = Session.builder()
                 .id(1L).userId(1L).token("valid-token")
+                .lastAccessedAt(LocalDateTime.now().minusMinutes(5))
                 .expiresAt(LocalDateTime.now().plusMinutes(15)).build();
 
         User user = User.builder().id(1L).username("testuser")

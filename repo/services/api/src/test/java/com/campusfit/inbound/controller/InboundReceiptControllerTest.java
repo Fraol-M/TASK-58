@@ -12,6 +12,8 @@ import com.campusfit.shared.security.AuthenticationEntryPointImpl;
 import com.campusfit.shared.security.SessionAuthenticationFilter;
 import com.campusfit.shared.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -64,6 +67,15 @@ class InboundReceiptControllerTest {
 
     @MockBean
     private SessionAuthenticationFilter sessionAuthenticationFilter;
+
+    @BeforeEach
+    void setUpFilter() throws Exception {
+        doAnswer(inv -> {
+            FilterChain chain = inv.getArgument(2);
+            chain.doFilter(inv.getArgument(0), inv.getArgument(1));
+            return null;
+        }).when(sessionAuthenticationFilter).doFilter(any(), any(), any());
+    }
 
     private void authenticateAs(Long userId, String username, Set<String> roles) {
         UserPrincipal principal = new UserPrincipal(userId, username, roles);

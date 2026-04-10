@@ -6,6 +6,8 @@ target/
 *.ear
 *.log
 hs_err_pid*
+.claude
+
 
 # Maven
 .mvn/timing.properties

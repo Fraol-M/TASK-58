@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -42,12 +43,17 @@ public class DeliveryChannelPolicy {
     }
 
     /**
-     * Returns only channels that have a working delivery adapter.
-     * IN_APP is the only implemented channel. External channels (EMAIL, SMS, WECOM)
-     * are hard-disabled here until their adapters are implemented, regardless of
-     * configuration flags, to prevent silent delivery failures.
+     * Returns the enabled delivery channels based on configuration flags.
+     * IN_APP is always included. EMAIL, SMS, and WECOM are included when their
+     * respective flags are enabled (adapters are not yet implemented — delivery
+     * attempts for those channels will be logged as warnings).
      */
     public List<NotificationDelivery.DeliveryChannel> getEnabledChannels() {
-        return List.of(NotificationDelivery.DeliveryChannel.IN_APP);
+        List<NotificationDelivery.DeliveryChannel> channels = new ArrayList<>();
+        channels.add(NotificationDelivery.DeliveryChannel.IN_APP);
+        if (emailEnabled) channels.add(NotificationDelivery.DeliveryChannel.EMAIL);
+        if (smsEnabled) channels.add(NotificationDelivery.DeliveryChannel.SMS);
+        if (wecomEnabled) channels.add(NotificationDelivery.DeliveryChannel.WECOM);
+        return channels;
     }
 }

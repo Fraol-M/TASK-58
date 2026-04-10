@@ -18,6 +18,8 @@ import com.campusfit.shared.security.AuthenticationEntryPointImpl;
 import com.campusfit.shared.security.SessionAuthenticationFilter;
 import com.campusfit.shared.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -36,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -73,6 +76,15 @@ class ExportControllerTest {
 
     @MockBean
     private SessionAuthenticationFilter sessionAuthenticationFilter;
+
+    @BeforeEach
+    void setUpFilter() throws Exception {
+        doAnswer(inv -> {
+            FilterChain chain = inv.getArgument(2);
+            chain.doFilter(inv.getArgument(0), inv.getArgument(1));
+            return null;
+        }).when(sessionAuthenticationFilter).doFilter(any(), any(), any());
+    }
 
     private void authenticateAs(Long userId, String username, Set<String> roles) {
         UserPrincipal principal = new UserPrincipal(userId, username, roles);
@@ -259,7 +271,7 @@ class ExportControllerTest {
         user.setPasswordHash("$2a$hashed");
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(passwordService.matches("correctpass", "$2a$hashed")).thenReturn(true);
-        doNothing().when(accountDeletionService).requestDeletion(1L);
+        when(accountDeletionService.requestDeletion(1L)).thenReturn(null);
 
         mockMvc.perform(delete("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)

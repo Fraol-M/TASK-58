@@ -140,7 +140,7 @@ FRONTEND_EXIT=0
 if [ "$RUN_BACKEND" = true ]; then
     banner "Backend Tests  (JUnit 5 / Maven)"
 
-    MVN_CMD="mvn test -B -Dspring.profiles.active=test"
+    MVN_CMD="mvn clean test -B -Dspring.profiles.active=test"
     if [ -n "$TEST_FILTER" ]; then
         MVN_CMD="${MVN_CMD} -Dtest=${TEST_FILTER}"
         log_filter "$TEST_FILTER"
