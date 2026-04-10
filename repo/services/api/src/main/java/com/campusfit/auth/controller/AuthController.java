@@ -36,6 +36,9 @@ public class AuthController {
                                                               HttpServletRequest httpRequest) {
         String ipAddress = getClientIpAddress(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        if (!StringUtils.hasText(userAgent)) {
+            userAgent = "unknown";
+        }
 
         LoginResponse response = authService.signIn(request, ipAddress, userAgent);
         return ResponseEntity.ok(ApiResponse.ok(response));

@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex,
                                                                  HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
+            .success(false)
             .timestamp(LocalDateTime.now())
             .status(HttpStatus.NOT_FOUND.value())
             .error("Not Found")
@@ -37,6 +38,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex,
                                                                   HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
+            .success(false)
             .timestamp(LocalDateTime.now())
             .status(HttpStatus.BAD_REQUEST.value())
             .error("Bad Request")
@@ -51,6 +53,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex,
                                                              HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
+            .success(false)
             .timestamp(LocalDateTime.now())
             .status(HttpStatus.FORBIDDEN.value())
             .error("Forbidden")
@@ -70,6 +73,7 @@ public class GlobalExceptionHandler {
         );
 
         ErrorResponse errorResponse = ErrorResponse.builder()
+            .success(false)
             .timestamp(LocalDateTime.now())
             .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
             .error("Validation Failed")
@@ -87,6 +91,7 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception occurred", ex);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
+            .success(false)
             .timestamp(LocalDateTime.now())
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .error("Internal Server Error")

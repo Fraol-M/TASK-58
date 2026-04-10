@@ -34,7 +34,7 @@ public class AcademicClass {
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @Column(name = "year", nullable = false)
+    @Column(name = "`year`", nullable = false)
     private int year;
 
     @Column(name = "effective_from", nullable = false)

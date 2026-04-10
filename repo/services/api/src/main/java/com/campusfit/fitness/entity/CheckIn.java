@@ -36,7 +36,7 @@ public class CheckIn {
     private int weekNumber;
 
     @Convert(converter = BigDecimalAesEncryptor.class)
-    @Column(name = "value", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "`value`", nullable = false, columnDefinition = "TEXT")
     private BigDecimal value;
 
     @Column(name = "notes", columnDefinition = "TEXT")

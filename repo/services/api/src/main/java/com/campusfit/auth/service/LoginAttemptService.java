@@ -4,6 +4,7 @@ import com.campusfit.auth.entity.User;
 import com.campusfit.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -23,7 +24,7 @@ public class LoginAttemptService {
         this.lockoutDurationMinutes = lockoutDurationMinutes;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFailedAttempt(User user) {
         int newAttempts = user.getFailedAttempts() + 1;
         user.setFailedAttempts(newAttempts);
