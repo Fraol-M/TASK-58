@@ -92,7 +92,7 @@ This system is designed for offline-first local deployment:
 - All data is persisted in a local MySQL instance
 - Authentication is local username/password (no external IdP)
 - Notification delivery is in-app only by default
-- Email/SMS/WeCom channels are configurable but **disabled by default**
+- Email/SMS/WeCom channels are **hard-disabled** until adapters are implemented (config flags are ignored)
 - Export files are stored locally with configurable retention
 
 ## Security
@@ -102,6 +102,5 @@ This system is designed for offline-first local deployment:
 - Session timeout after 30 minutes of inactivity
 - Role-based access control (RBAC) at route, function, and object level
 - Personal fitness metrics encrypted at rest (AES-256-GCM)
-- Sensitive fields masked in logs and exports
-- Export files are password-protected
+- Sensitive fields masked in logs; export files contain raw profile data inside a password-encrypted (AES-256-CBC) bundle to support round-trip import
 - Account deletion hard-deletes PII while retaining de-identified audit trail

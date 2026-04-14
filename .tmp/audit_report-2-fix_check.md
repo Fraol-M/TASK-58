@@ -49,10 +49,9 @@ Method: static re-inspection only (no runtime execution)
   - Startup warnings are emitted when EMAIL/SMS/WECOM flags are enabled without adapters:
     - `repo/services/api/src/main/java/com/campusfit/notification/service/DeliveryChannelPolicy.java:29`
 
-- Follow-up note (new):
-  - `DeliveryChannelPolicyTest` still expects EMAIL/SMS/WECOM to be returned when flags are true, which no longer matches current policy behavior:
+- Follow-up note (resolved):
+  - `DeliveryChannelPolicyTest` now expects only IN_APP regardless of flag state, matching the hard-disable policy:
     - `repo/services/api/src/test/java/com/campusfit/notification/policy/DeliveryChannelPolicyTest.java:48`
-    - `repo/services/api/src/test/java/com/campusfit/notification/policy/DeliveryChannelPolicyTest.java:61`
 
 ## 4) Sign-out API contract inconsistency (OpenAPI vs implementation/security rules)
 - Previous status: Medium

@@ -369,13 +369,13 @@ Export files contain raw profile data (username, email, phone) — this is safe 
 
 ### 8.3 Field Masking
 
-`FieldMasker` redacts sensitive values in logs, API responses, **and export file payloads**:
+`FieldMasker` redacts sensitive values in **logs and API responses**:
 
 - Generic: first 2 + last 2 characters visible (e.g., `jo***oe`)
 - Email: first character + domain (e.g., `j***@example.com`)
 - Numeric: replaced with `***`
 
-Masking is applied even inside password-encrypted export files. Raw PII never appears in log output or export bundles.
+Masking is **not** applied inside export file payloads — raw profile data is kept so that round-trip import works (see §8.2). The export file itself is password-encrypted (AES-256-CBC), so raw PII is protected at rest.
 
 ---
 

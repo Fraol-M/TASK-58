@@ -59,22 +59,10 @@ public class NotificationService {
                     .build();
             target = targetRepository.save(target);
 
-            // Create delivery records for enabled channels
+            // Deliver via all enabled channels (currently only IN_APP)
             for (NotificationDelivery.DeliveryChannel channel : enabledChannels) {
                 if (channel == NotificationDelivery.DeliveryChannel.IN_APP) {
                     inAppDeliveryService.deliver(target.getId());
-                } else {
-                    // External channel adapters (EMAIL, SMS, WECOM) are not yet implemented.
-                    // Records are created with FAILED status so operators can see which
-                    // deliveries were requested but could not be sent, rather than leaving
-                    // them as PENDING indefinitely.
-                    NotificationDelivery delivery = NotificationDelivery.builder()
-                            .targetId(target.getId())
-                            .channel(channel)
-                            .status(NotificationDelivery.DeliveryStatus.FAILED)
-                            .failureReason("Channel adapter not implemented: " + channel.name())
-                            .build();
-                    deliveryRepository.save(delivery);
                 }
             }
         }

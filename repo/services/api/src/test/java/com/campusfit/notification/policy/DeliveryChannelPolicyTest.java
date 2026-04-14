@@ -45,30 +45,13 @@ class DeliveryChannelPolicyTest {
     }
 
     @Test
-    void getEnabledChannels_includesEmail_whenEnabled() {
-        DeliveryChannelPolicy policy = createPolicy(true, false, false);
-
-        List<NotificationDelivery.DeliveryChannel> channels = policy.getEnabledChannels();
-
-        assertThat(channels).hasSize(2);
-        assertThat(channels).contains(
-                NotificationDelivery.DeliveryChannel.IN_APP,
-                NotificationDelivery.DeliveryChannel.EMAIL
-        );
-    }
-
-    @Test
-    void getEnabledChannels_allChannels_whenAllEnabled() {
+    void getEnabledChannels_onlyInApp_evenWhenFlagsEnabled() {
+        // External adapters are not implemented, so flags are ignored
         DeliveryChannelPolicy policy = createPolicy(true, true, true);
 
         List<NotificationDelivery.DeliveryChannel> channels = policy.getEnabledChannels();
 
-        assertThat(channels).hasSize(4);
-        assertThat(channels).containsExactly(
-                NotificationDelivery.DeliveryChannel.IN_APP,
-                NotificationDelivery.DeliveryChannel.EMAIL,
-                NotificationDelivery.DeliveryChannel.SMS,
-                NotificationDelivery.DeliveryChannel.WECOM
-        );
+        assertThat(channels).hasSize(1);
+        assertThat(channels).containsExactly(NotificationDelivery.DeliveryChannel.IN_APP);
     }
 }
