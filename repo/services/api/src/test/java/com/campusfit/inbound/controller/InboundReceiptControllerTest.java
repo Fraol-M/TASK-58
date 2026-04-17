@@ -347,4 +347,16 @@ class InboundReceiptControllerTest {
 
         SecurityContextHolder.clearContext();
     }
+
+    // ── Discrepancies ───────────────────────────────────────────────────────
+
+    @Test
+    void getDiscrepancies_opsStaff_returns200() throws Exception {
+        authenticateAs(1L, "opsuser", Set.of("OPERATIONS_STAFF"));
+        when(discrepancyService.getByReceiptId(1L)).thenReturn(List.of());
+        mockMvc.perform(get("/api/inbound/receipts/1/discrepancies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        SecurityContextHolder.clearContext();
+    }
 }

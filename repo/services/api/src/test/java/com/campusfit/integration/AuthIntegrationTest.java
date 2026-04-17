@@ -3,7 +3,11 @@ package com.campusfit.integration;
 import com.campusfit.auth.dto.LoginRequest;
 import com.campusfit.auth.dto.SignUpRequest;
 import com.campusfit.auth.entity.Role;
+import com.campusfit.auth.entity.User;
+import com.campusfit.auth.entity.UserRole;
 import com.campusfit.auth.repository.RoleRepository;
+import com.campusfit.auth.repository.UserRepository;
+import com.campusfit.auth.repository.UserRoleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +42,12 @@ class AuthIntegrationTest {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserRoleRepository userRoleRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -266,6 +276,45 @@ class AuthIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(
                         "Account is locked due to too many failed attempts. Please try again later."));
+    }
+
+    // -------------------------------------------------------------------------
+    // Role assignment: admin can assign roles to other users
+    // -------------------------------------------------------------------------
+
+    @Test
+    void assignRole_adminUser_canAssignRoleToTargetUser() throws Exception {
+        // Set up admin user
+        mockMvc.perform(post("/api/auth/sign-up")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(SignUpRequest.builder()
+                        .username("auth_role_admin").password("password123").build())));
+
+        User adminUser = userRepository.findByUsername("auth_role_admin").orElseThrow();
+        Role adminRole = roleRepository.findByCode("ADMIN").orElseThrow();
+        userRoleRepository.save(UserRole.builder()
+                .userId(adminUser.getId()).roleId(adminRole.getId()).build());
+
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/sign-in")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(LoginRequest.builder()
+                                .username("auth_role_admin").password("password123").build())))
+                .andReturn();
+        String adminToken = extractToken(loginResult);
+
+        // Sign up target user
+        mockMvc.perform(post("/api/auth/sign-up")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(SignUpRequest.builder()
+                        .username("auth_role_target").password("password123").build())));
+        User targetUser = userRepository.findByUsername("auth_role_target").orElseThrow();
+
+        // Admin assigns ADMIN role to target user
+        mockMvc.perform(post("/api/admin/users/" + targetUser.getId() + "/roles")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("roleCode", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.roles").isArray());
     }
 
     // -------------------------------------------------------------------------

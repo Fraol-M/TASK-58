@@ -207,6 +207,182 @@ class InboundWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.message").exists());
     }
 
+    // ---- Discrepancies endpoint ----
+
+    @Test
+    void inbound_getDiscrepancies_afterFailInspection_returnsListOk() throws Exception {
+        String token = signUpAndGetToken("iw_disc_admin", "password123", "ADMIN");
+
+        MvcResult createResult = mockMvc.perform(post("/api/inbound/receipts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "receiptType", "PURCHASE", "supplierName", "Disc Supplier"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long receiptId = extractId(createResult, "/data/id");
+
+        MvcResult lineResult = mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/lines")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "itemCode", "DISC-001", "itemName", "Disc Item", "expectedQty", 5))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long lineId = extractId(lineResult, "/data/id");
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "RECEIVING"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/receive")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("lineId", lineId, "receivedQty", 5))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "INSPECTION"))))
+                .andExpect(status().isOk());
+
+        // Inspect with FAIL to generate a discrepancy
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/inspection")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lineId", lineId, "inspectedQty", 3, "result", "FAIL",
+                                "notes", "Damaged packaging"))))
+                .andExpect(status().isOk());
+
+        // GET discrepancies — list endpoint returns 200 with array
+        mockMvc.perform(get("/api/inbound/receipts/" + receiptId + "/discrepancies")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    // ---- Supervisor-review: separation-of-duty enforcement ----
+
+    @Test
+    void inbound_supervisorReview_sameUserAsCreator_returns400() throws Exception {
+        String token = signUpAndGetToken("iw_sv_same_admin", "password123", "ADMIN");
+
+        MvcResult createResult = mockMvc.perform(post("/api/inbound/receipts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "receiptType", "PURCHASE", "supplierName", "SV Same Supplier"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long receiptId = extractId(createResult, "/data/id");
+
+        // Same admin tries to supervisor-review their own receipt → separation-of-duty violation
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/supervisor-review")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "discrepancyId", 99999,
+                                "reasonCode", "COUNTED_WRONG",
+                                "notes", "Test note"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "Supervisor review requires a different user than the receipt creator"));
+    }
+
+    // ---- Unpost: admin can unpost a posted receipt ----
+
+    @Test
+    void inbound_unpost_adminCanUnpostPostedReceipt() throws Exception {
+        String token = signUpAndGetToken("iw_unpost_admin", "password123", "ADMIN");
+
+        MvcResult createResult = mockMvc.perform(post("/api/inbound/receipts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "receiptType", "PURCHASE", "supplierName", "Unpost Supplier"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long receiptId = extractId(createResult, "/data/id");
+
+        MvcResult lineResult = mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/lines")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "itemCode", "UP-001", "itemName", "Unpost Item", "expectedQty", 2))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long lineId = extractId(lineResult, "/data/id");
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "RECEIVING"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/receive")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("lineId", lineId, "receivedQty", 2))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "INSPECTION"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/inspection")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lineId", lineId, "inspectedQty", 2, "result", "PASS"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "PUTAWAY"))))
+                .andExpect(status().isOk());
+
+        MvcResult tasksResult = mockMvc.perform(get("/api/inbound/receipts/" + receiptId + "/putaway")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        long taskId = extractId(tasksResult, "/data/0/id");
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/putaway")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "taskId", taskId, "actualLocation", "ZONE-A-01"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/transition")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("targetState", "COMPLETED"))))
+                .andExpect(status().isOk());
+
+        // POST → POSTED
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/post")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        // UNPOST → UNPOSTED (ADMIN only)
+        mockMvc.perform(post("/api/inbound/receipts/" + receiptId + "/unpost")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/inbound/receipts/" + receiptId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("UNPOSTED"));
+    }
+
     // ---- Helpers ----
 
     private void seedRole(String code, String name) {

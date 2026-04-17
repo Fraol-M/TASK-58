@@ -20,9 +20,15 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockMultipartFile;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -138,6 +144,76 @@ class ExportLifecycleIntegrationTest {
                                 "passwordProtected", true,
                                 "exportPassword", "SomePass!77"))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ---- Download ----
+
+    @Test
+    void exportDownload_completedExport_returnsOctetStream() throws Exception {
+        String token = signUpAndGetToken("ex_dl_u", "password123");
+
+        MvcResult createResult = mockMvc.perform(post("/api/exports/account")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "exportType", "ACCOUNT_DATA",
+                                "passwordProtected", true,
+                                "exportPassword", "DownloadPass!55"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long exportId = extractId(createResult, "/data/id");
+
+        mockMvc.perform(get("/api/exports/" + exportId + "/download")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment")));
+    }
+
+    // ---- Import (JSON) ----
+
+    @Test
+    void importAccount_json_endpointAccessible() throws Exception {
+        String token = signUpAndGetToken("ex_impjson_u", "password123");
+
+        MvcResult result = mockMvc.perform(post("/api/imports/account")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of())))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isNotIn(401, 403, 500, 503);
+    }
+
+    // ---- Import (file) ----
+
+    @Test
+    void importAccountFromFile_invalidBytes_returns4xx() throws Exception {
+        String token = signUpAndGetToken("ex_impfile_u", "password123");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "export.enc", MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                "not-valid-encrypted-content".getBytes());
+
+        mockMvc.perform(multipart("/api/imports/account/file")
+                        .file(file)
+                        .param("password", "WrongPassword!1")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().is4xxClientError());
+    }
+
+    // ---- Account deletion ----
+
+    @Test
+    void deleteAccount_withCorrectPassword_returns200() throws Exception {
+        String token = signUpAndGetToken("ex_delete_u", "password123");
+
+        mockMvc.perform(delete("/api/account")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("password", "password123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     // ---- Helpers ----

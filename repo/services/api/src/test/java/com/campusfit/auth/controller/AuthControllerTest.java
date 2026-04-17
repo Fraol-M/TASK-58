@@ -234,4 +234,42 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/me"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ── Helper ──────────────────────────────────────────────────────────────
+
+    private void authenticateAs(Long userId, String username, Set<String> roles) {
+        UserPrincipal principal = new UserPrincipal(userId, username, roles);
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                principal, null, principal.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    // ── assignRole ──────────────────────────────────────────────────────────
+
+    @Test
+    void assignRole_unauthenticated_returns401() throws Exception {
+        SecurityContextHolder.clearContext();
+        mockMvc.perform(post("/api/admin/users/2/roles").param("roleCode", "ADMIN"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void assignRole_nonAdmin_returns403() throws Exception {
+        authenticateAs(1L, "user", Set.of("REGULAR_USER"));
+        mockMvc.perform(post("/api/admin/users/2/roles").param("roleCode", "ADMIN"))
+                .andExpect(status().isForbidden());
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void assignRole_admin_returns200() throws Exception {
+        authenticateAs(1L, "admin", Set.of("ADMIN"));
+        UserDto userDto = UserDto.builder().id(2L).username("someuser").build();
+        when(authService.assignRole(eq(2L), eq("ADMIN"))).thenReturn(userDto);
+        mockMvc.perform(post("/api/admin/users/2/roles").param("roleCode", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(2));
+        SecurityContextHolder.clearContext();
+    }
 }

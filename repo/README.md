@@ -1,5 +1,7 @@
 # CampusFit Learning & Inventory Operations System
 
+**Project Type: fullstack**
+
 A full-stack system for campus fitness tracking, study/review planning, warehouse inbound operations, and academic master data management. Designed for **offline-first local deployment**.
 
 ## Repository Structure
@@ -21,11 +23,20 @@ A full-stack system for campus fitness tracking, study/review planning, warehous
 | **Operations Staff** | Warehouse — inbound receiving, inspection, putaway |
 | **Administrator** | Master data management, bulk import/export, system performance |
 
+## Demo Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | admin | Admin@123 |
+| Operations Staff | operator | Operator@123 |
+| Regular User | student | Student@123 |
+
+Note: These are seeded by the database migration on first startup.
+
 ## Quick Start
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 18+ (for frontend development)
 
 ### Run with Docker Compose
 
@@ -39,15 +50,29 @@ docker-compose up --build
 - API: http://localhost:8080
 - MySQL: localhost:3306
 
-### Run Frontend Only (Mock Mode)
+### Verify the System
+
+After `docker-compose up --build`, verify:
 
 ```bash
-cd apps/web
-npm install
-npm run dev
+# Backend health check
+curl http://localhost:8080/api/auth/sign-in -X POST -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin@123"}'
+
+# Frontend loads
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+# Expected: 200
 ```
 
-By default the frontend connects to the backend API. To run without a backend, set `VITE_MOCK_MODE=true` in a local `.env` file inside `apps/web/`, which enables local mock data. A banner is displayed to indicate mock mode is active.
+### Run Frontend Only (Mock Mode)
+
+The frontend can run in mock mode inside Docker without a backend. Set `VITE_MOCK_MODE=true` in your `.env` file and run:
+
+```bash
+docker-compose up --build web
+```
+
+A banner is displayed to indicate mock mode is active.
 
 ### Run Backend Only
 
@@ -60,11 +85,7 @@ docker run -p 8080:8080 --env-file .env campusfit-api
 ### Run Tests
 
 ```bash
-# Frontend tests
-cd apps/web && npm test
-
-# Backend tests (via Docker)
-docker build --target test -t campusfit-api-test services/api/
+./run_tests.sh
 ```
 
 ## Environment Configuration

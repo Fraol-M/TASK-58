@@ -25,12 +25,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -295,6 +298,71 @@ class ExportControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").value("Import completed: 5 records restored"));
+
+        SecurityContextHolder.clearContext();
+    }
+
+    // ── Download export ─────────────────────────────────────────────────────
+
+    @Test
+    void downloadExport_unauthenticated_returns401() throws Exception {
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(get("/api/exports/10/download"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void downloadExport_authenticated_returns200() throws Exception {
+        authenticateAs(1L, "user", Set.of("REGULAR_USER"));
+
+        Path tempFile = java.nio.file.Files.createTempFile("export-test-", ".enc");
+        java.nio.file.Files.writeString(tempFile, "encrypted-data");
+        when(exportService.getExportFilePath(10L, 1L)).thenReturn(tempFile);
+
+        mockMvc.perform(get("/api/exports/10/download"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("attachment")));
+
+        java.nio.file.Files.deleteIfExists(tempFile);
+        SecurityContextHolder.clearContext();
+    }
+
+    // ── Import account from file ────────────────────────────────────────────
+
+    @Test
+    void importAccountFromFile_unauthenticated_returns401() throws Exception {
+        SecurityContextHolder.clearContext();
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "export.enc", MediaType.APPLICATION_OCTET_STREAM_VALUE, new byte[]{1, 2, 3});
+
+        mockMvc.perform(multipart("/api/imports/account/file")
+                        .file(file)
+                        .param("password", "secret"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void importAccountFromFile_authenticated_returns200() throws Exception {
+        authenticateAs(1L, "user", Set.of("REGULAR_USER"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "export.enc", MediaType.APPLICATION_OCTET_STREAM_VALUE, new byte[]{1, 2, 3});
+
+        Map<String, Object> decryptedData = Map.of("profile", Map.of("displayName", "Test"));
+        when(exportService.decryptExportFile(any(byte[].class), eq("secret")))
+                .thenReturn(decryptedData);
+        when(accountImportService.importAccountData(eq(1L), any()))
+                .thenReturn("Import completed: 3 records restored");
+
+        mockMvc.perform(multipart("/api/imports/account/file")
+                        .file(file)
+                        .param("password", "secret"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("Import completed: 3 records restored"));
 
         SecurityContextHolder.clearContext();
     }

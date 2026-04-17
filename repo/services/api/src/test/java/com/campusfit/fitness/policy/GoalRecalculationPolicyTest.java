@@ -133,4 +133,51 @@ class GoalRecalculationPolicyTest {
         assertThat(goal.getMissedCheckIns()).isEqualTo(0);
         assertThat(goal.getStatus()).isEqualTo(Goal.GoalStatus.RECALCULATED);
     }
+
+    @Test
+    void recalculate_minimumExtensionIsOneDay_whenRemainingDaysIsVerySmall() {
+        // 1 remaining day → 20% = 0.2 → max(1, 0) = 1
+        LocalDate targetDate = LocalDate.now().plusDays(1);
+        Goal goal = Goal.builder()
+                .id(1L).userId(100L)
+                .targetValue(new BigDecimal("100.00"))
+                .currentValue(new BigDecimal("80.00"))
+                .startValue(BigDecimal.ZERO)
+                .startDate(LocalDate.now().minusDays(30))
+                .targetDate(targetDate)
+                .status(Goal.GoalStatus.ACTIVE)
+                .missedCheckIns(2)
+                .build();
+
+        when(goalRepository.save(any(Goal.class))).thenReturn(goal);
+        when(auditRepository.save(any(GoalAdjustmentAudit.class))).thenReturn(GoalAdjustmentAudit.builder().build());
+
+        policy.recalculate(goal, 1L);
+
+        assertThat(goal.getTargetDate()).isEqualTo(targetDate.plusDays(1));
+    }
+
+    @Test
+    void recalculate_expiredGoal_usesFallbackOf7Days() {
+        // targetDate in the past → remainingDays <= 0 → fallback 7, extension = max(1, 1) = 1
+        LocalDate pastDate = LocalDate.now().minusDays(5);
+        Goal goal = Goal.builder()
+                .id(1L).userId(100L)
+                .targetValue(new BigDecimal("100.00"))
+                .currentValue(new BigDecimal("80.00"))
+                .startValue(BigDecimal.ZERO)
+                .startDate(LocalDate.now().minusDays(60))
+                .targetDate(pastDate)
+                .status(Goal.GoalStatus.ACTIVE)
+                .missedCheckIns(2)
+                .build();
+
+        when(goalRepository.save(any(Goal.class))).thenReturn(goal);
+        when(auditRepository.save(any(GoalAdjustmentAudit.class))).thenReturn(GoalAdjustmentAudit.builder().build());
+
+        policy.recalculate(goal, 1L);
+
+        // targetDate should be extended past the original (past) date
+        assertThat(goal.getTargetDate()).isAfter(pastDate);
+    }
 }
