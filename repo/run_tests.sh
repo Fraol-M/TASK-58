@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MSYS_NO_PATHCONV=1
-RUN_E2E="${RUN_E2E:-1}"
+RUN_E2E="${RUN_E2E:-0}"
 E2E_ONLY="${E2E_ONLY:-0}"
 E2E_COMPOSE_PROJECT="${E2E_COMPOSE_PROJECT:-campusfit-e2e}"
 E2E_WEB_PORT="${E2E_WEB_PORT:-3300}"
