@@ -1,27 +1,29 @@
 import { test, expect } from '@playwright/test'
 
-const UNIQUE_ID = Date.now() + 1
-const TEST_USER = `fitness_e2e_${UNIQUE_ID}`
 const TEST_PASSWORD = 'FitnessE2e123!'
 
 test.describe('Fitness flow', () => {
+  let testUser = ''
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/sign-up')
-    await page.getByLabel(/username/i).fill(TEST_USER)
-    await page.getByLabel(/password/i).first().fill(TEST_PASSWORD)
-    await page.getByRole('button', { name: /sign up/i }).click()
-    await page.waitForURL(/\/(auth\/sign-in|dashboard)/)
+    testUser = `fitness_e2e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    await page.goto('/sign-up')
+    await page.getByPlaceholder(/choose a username/i).fill(testUser)
+    await page.getByPlaceholder(/create a strong password/i).fill(TEST_PASSWORD)
+    await page.getByPlaceholder(/confirm your password/i).fill(TEST_PASSWORD)
+    await page.getByRole('button', { name: /create account/i }).click()
+    await page.waitForURL(/\/(sign-in|dashboard)/)
 
     if (page.url().includes('sign-in')) {
-      await page.getByLabel(/username/i).fill(TEST_USER)
-      await page.getByLabel(/password/i).fill(TEST_PASSWORD)
+      await page.getByPlaceholder(/enter your username/i).fill(testUser)
+      await page.getByPlaceholder(/enter your password/i).fill(TEST_PASSWORD)
       await page.getByRole('button', { name: /sign in/i }).click()
     }
     await page.waitForURL(/\/dashboard/)
   })
 
   test('fitness section is accessible when authenticated', async ({ page }) => {
-    await page.goto('/fitness')
+    await page.goto('/fitness/goals')
     await expect(page).not.toHaveURL(/sign-in/)
   })
 
@@ -36,6 +38,9 @@ test.describe('Fitness flow', () => {
       .or(page.getByText(/fitness|goals?/i))
     if (await fitnessLink.count() > 0) {
       await fitnessLink.first().click()
+      await expect(page).not.toHaveURL(/sign-in/)
+    } else {
+      await page.goto('/fitness/goals')
       await expect(page).not.toHaveURL(/sign-in/)
     }
   })
