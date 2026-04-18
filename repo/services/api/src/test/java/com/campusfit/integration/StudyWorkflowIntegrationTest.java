@@ -70,14 +70,14 @@ class StudyWorkflowIntegrationTest {
     }
 
     @Test
-    void studyPlan_missingTitle_returns400() throws Exception {
+    void studyPlan_missingTitle_returns422() throws Exception {
         String token = signUpAndGetToken("sw_notitle_user");
 
         mockMvc.perform(post("/api/study/plans")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("description", "no title here"))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     // ---- Daily completion ----

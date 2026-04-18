@@ -55,7 +55,7 @@ class GoalServiceTest {
                 .build();
 
         // No assessment exists — baseline defaults to zero
-        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDesc(100L))
+        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDescIdDesc(100L))
                 .thenReturn(Optional.empty());
 
         Goal savedGoal = Goal.builder()
@@ -100,7 +100,7 @@ class GoalServiceTest {
                 .targetDate(LocalDate.now().plusWeeks(12))
                 .build();
 
-        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDesc(100L))
+        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDescIdDesc(100L))
                 .thenReturn(Optional.empty());
 
         Goal savedGoal = Goal.builder()
@@ -141,7 +141,7 @@ class GoalServiceTest {
                 .assessmentDate(LocalDate.now().minusDays(7))
                 .build();
 
-        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDesc(100L))
+        when(assessmentRepository.findTopByUserIdOrderByAssessmentDateDescIdDesc(100L))
                 .thenReturn(Optional.of(assessment));
 
         GoalRequest request = GoalRequest.builder()

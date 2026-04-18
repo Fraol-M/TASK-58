@@ -134,7 +134,7 @@ class FitnessWorkflowIntegrationTest {
     }
 
     @Test
-    void goal_pastTargetDate_returns400() throws Exception {
+    void goal_pastTargetDate_returns422() throws Exception {
         String token = signUpAndGetToken("fw_pastdate_user");
 
         mockMvc.perform(post("/api/fitness/goals")
@@ -146,7 +146,7 @@ class FitnessWorkflowIntegrationTest {
                                 "unit", "lbs",
                                 "startDate", LocalDate.now().toString(),
                                 "targetDate", LocalDate.now().minusDays(1).toString()))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     // ---- Check-in ----

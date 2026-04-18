@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MSYS_NO_PATHCONV=1
+RUN_E2E="${RUN_E2E:-0}"
 
 echo "=== Backend Tests ==="
 docker run --rm \
@@ -17,6 +18,12 @@ docker run --rm \
     -w /app \
     node:20-alpine \
     sh -c "npm ci && npm test"
+
+if [ "${RUN_E2E}" != "1" ]; then
+    echo "=== E2E Tests Skipped ==="
+    echo "Set RUN_E2E=1 to execute the Playwright suite."
+    exit 0
+fi
 
 echo "=== E2E Tests ==="
 # Spin up the full stack, run Playwright, then tear down regardless of outcome

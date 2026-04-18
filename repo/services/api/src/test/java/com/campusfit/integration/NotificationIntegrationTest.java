@@ -53,7 +53,7 @@ class NotificationIntegrationTest {
         User targetUser = userRepository.findByUsername("nt_reg_user").orElseThrow();
 
         // Admin creates notification targeting the regular user
-        MvcResult createResult = mockMvc.perform(post("/api/notifications")
+        mockMvc.perform(post("/api/notifications")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -62,16 +62,19 @@ class NotificationIntegrationTest {
                                 "body", "Welcome to CampusFit",
                                 "targetUserIds", List.of(targetUser.getId())))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.title").value("Integration Announcement"))
-                .andReturn();
-
-        long notificationId = extractId(createResult, "/data/id");
+                .andExpect(jsonPath("$.success").value(true));
 
         // Regular user lists their notifications (should be paginated)
-        mockMvc.perform(get("/api/notifications")
+        MvcResult notificationsResult = mockMvc.perform(get("/api/notifications")
                         .header("Authorization", "Bearer " + regularToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray());
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[0].title").value("Integration Announcement"))
+                .andReturn();
+
+        long notificationId = objectMapper.readTree(notificationsResult.getResponse().getContentAsString())
+                .at("/data/content/0/id")
+                .asLong();
 
         // Regular user marks notification as read
         mockMvc.perform(post("/api/notifications/" + notificationId + "/read")

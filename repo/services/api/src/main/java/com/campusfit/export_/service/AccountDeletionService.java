@@ -92,9 +92,8 @@ public class AccountDeletionService {
         userRepository.delete(user);
         userRepository.flush();
 
-        // Mark deletion complete — clear userId since the user row is gone
-        // (the DB already set it to NULL via ON DELETE SET NULL)
-        request.setUserId(null);
+        // Keep the original userId on the deletion request as an immutable audit reference.
+        // Some environments still enforce NOT NULL on this column.
         request.setStatus(DeletionRequest.DeletionStatus.COMPLETED);
         request.setProcessedAt(LocalDateTime.now());
         deletionRequestRepository.save(request);

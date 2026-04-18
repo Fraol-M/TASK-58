@@ -12,7 +12,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByUserId(Long userId);
 
-    Optional<Assessment> findTopByUserIdOrderByAssessmentDateDesc(Long userId);
+    Optional<Assessment> findTopByUserIdOrderByAssessmentDateDescIdDesc(Long userId);
 
     void deleteByUserId(Long userId);
 }

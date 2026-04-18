@@ -194,8 +194,8 @@ class InboundReceiptServiceTest {
                 .receiptId(receiptId)
                 .itemCode(itemCode)
                 .itemName("Item " + itemCode)
-                .expectedQty(expectedQty)
-                .receivedQty(0)
+                .expectedQty(BigDecimal.valueOf(expectedQty))
+                .receivedQty(BigDecimal.ZERO)
                 .unitCost(BigDecimal.valueOf(10.00))
                 .build();
     }

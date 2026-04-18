@@ -55,7 +55,7 @@ public class GoalService {
         BigDecimal startValue = BigDecimal.ZERO;
         Long assessmentId = null;
         Assessment latestAssessment = assessmentRepository
-                .findTopByUserIdOrderByAssessmentDateDesc(userId).orElse(null);
+                .findTopByUserIdOrderByAssessmentDateDescIdDesc(userId).orElse(null);
         if (latestAssessment != null) {
             assessmentId = latestAssessment.getId();
             startValue = resolveBaselineFromAssessment(latestAssessment, request.getGoalType());

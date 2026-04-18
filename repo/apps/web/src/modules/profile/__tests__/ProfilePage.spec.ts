@@ -35,7 +35,11 @@ function mountPage(userOverrides: Record<string, any> = {}) {
         AppCard: { template: '<div class="app-card" :data-title="title"><slot /></div>', props: ['title'] },
         AppBadge: { template: '<span class="badge">{{ label }}</span>', props: ['label', 'variant'] },
         FormField: { template: '<div class="form-field"><slot /></div>', props: ['label', 'required', 'error'] },
-        FormInput: { template: '<input v-bind="$attrs" />', props: ['modelValue', 'type', 'placeholder'], emits: ['update:modelValue'] },
+        FormInput: {
+          template: '<input :value="modelValue" :type="type" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          props: ['modelValue', 'type', 'placeholder'],
+          emits: ['update:modelValue'],
+        },
         SubmitButton: { template: '<button type="submit" :disabled="loading">{{ loading ? loadingText : text }}</button>', props: ['loading', 'text', 'loadingText'] },
       },
     },
@@ -88,13 +92,13 @@ describe('ProfilePage', () => {
   it('shows notification preferences section for ADMIN users', () => {
     const wrapper = mountPage({ roles: ['ADMIN'] })
 
-    expect(wrapper.html()).toContain('Notification Preferences')
+    expect(wrapper.findAll('.app-card').some(card => card.attributes('data-title') === 'Notification Preferences')).toBe(true)
   })
 
   it('hides notification preferences section for regular users', () => {
     const wrapper = mountPage({ roles: ['REGULAR_USER'] })
 
-    expect(wrapper.html()).not.toContain('Notification Preferences')
+    expect(wrapper.findAll('.app-card').some(card => card.attributes('data-title') === 'Notification Preferences')).toBe(false)
   })
 
   // ---- Password validation ----

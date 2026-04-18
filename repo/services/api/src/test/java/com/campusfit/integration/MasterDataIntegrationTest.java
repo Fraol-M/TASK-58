@@ -101,7 +101,9 @@ class MasterDataIntegrationTest {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "code", "TERM-2030-S1",
                                 "name", "Spring 2030 Updated",
-                                "effectiveFrom", "01/01/2030"))))
+                                "effectiveFrom", "01/01/2030",
+                                "startDate", "02/01/2030",
+                                "endDate", "06/30/2030"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("Spring 2030 Updated"));
 
@@ -109,9 +111,10 @@ class MasterDataIntegrationTest {
         mockMvc.perform(delete("/api/admin/terms/" + termId).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
 
-        // Get after delete returns 404
+        // Delete is soft-delete, so the record remains addressable but inactive
         mockMvc.perform(get("/api/admin/terms/" + termId).header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.active").value(false));
     }
 
     // ---- School CRUD ----
@@ -199,7 +202,9 @@ class MasterDataIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "code", "TERM-CHAIN-S1", "name", "Chain Spring",
-                                "effectiveFrom", "01/01/2025"))))
+                                "effectiveFrom", "01/01/2025",
+                                "startDate", "02/01/2025",
+                                "endDate", "06/30/2025"))))
                 .andExpect(status().isCreated())
                 .andReturn();
         long termId = extractId(termResult, "/data/id");
@@ -230,15 +235,20 @@ class MasterDataIntegrationTest {
     void changeHistory_adminCanAccess() throws Exception {
         String token = signUpAndGetToken("md_history_admin", "ADMIN");
 
-        mockMvc.perform(get("/api/admin/master-data/history").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/admin/master-data/history")
+                        .param("entityType", "TERM")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
     void masterDataExport_adminCanAccess() throws Exception {
         String token = signUpAndGetToken("md_export_admin", "ADMIN");
 
-        mockMvc.perform(get("/api/admin/master-data/export").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/admin/master-data/export")
+                        .param("entityType", "TERM")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
 
@@ -246,8 +256,11 @@ class MasterDataIntegrationTest {
     void masterDataMerge_dryRun_adminCanAccess() throws Exception {
         String token = signUpAndGetToken("md_merge_admin", "ADMIN");
 
-        mockMvc.perform(get("/api/admin/master-data/merge").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/admin/master-data/merge")
+                        .param("entityType", "TERM")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     // ---- Major individual CRUD by ID ----
@@ -293,7 +306,8 @@ class MasterDataIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/admin/majors/" + majorId).header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.active").value(false));
     }
 
     // ---- Class individual CRUD by ID ----
@@ -349,7 +363,8 @@ class MasterDataIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/admin/classes/" + classId).header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.active").value(false));
     }
 
     // ---- Course individual CRUD by ID ----
@@ -393,7 +408,9 @@ class MasterDataIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "code", "TERM-CRS-CRUD", "name", "Term for Course CRUD",
-                                "effectiveFrom", "01/01/2025"))))
+                                "effectiveFrom", "01/01/2025",
+                                "startDate", "02/01/2025",
+                                "endDate", "06/30/2025"))))
                 .andExpect(status().isCreated())
                 .andReturn();
         long termId = extractId(termResult, "/data/id");
@@ -427,7 +444,8 @@ class MasterDataIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/admin/courses/" + courseId).header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.active").value(false));
     }
 
     // ---- Master data imports (multipart file) ----
@@ -470,7 +488,9 @@ class MasterDataIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "code", "TERM-MERGE-SRC", "name", "Spring 2029",
-                                "effectiveFrom", "01/01/2029"))))
+                                "effectiveFrom", "01/01/2029",
+                                "startDate", "02/01/2029",
+                                "endDate", "06/30/2029"))))
                 .andExpect(status().isCreated())
                 .andReturn();
         long srcId = extractId(src, "/data/id");
@@ -480,7 +500,9 @@ class MasterDataIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "code", "TERM-MERGE-TGT", "name", "Spring 2029 Target",
-                                "effectiveFrom", "01/01/2029"))))
+                                "effectiveFrom", "01/01/2029",
+                                "startDate", "02/01/2029",
+                                "endDate", "06/30/2029"))))
                 .andExpect(status().isCreated())
                 .andReturn();
         long tgtId = extractId(tgt, "/data/id");

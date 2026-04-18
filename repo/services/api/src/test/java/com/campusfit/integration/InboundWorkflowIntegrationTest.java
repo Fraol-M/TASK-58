@@ -286,7 +286,7 @@ class InboundWorkflowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "discrepancyId", 99999,
-                                "reasonCode", "COUNTED_WRONG",
+                                "reasonCode", "OTHER",
                                 "notes", "Test note"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(

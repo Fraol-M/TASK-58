@@ -54,7 +54,7 @@ public class AssessmentService {
 
     @Transactional(readOnly = true)
     public AssessmentResponse getLatest(Long userId) {
-        Assessment assessment = assessmentRepository.findTopByUserIdOrderByAssessmentDateDesc(userId)
+        Assessment assessment = assessmentRepository.findTopByUserIdOrderByAssessmentDateDescIdDesc(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assessment", userId));
         return toResponse(assessment, null);
     }
