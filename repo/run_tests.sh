@@ -20,8 +20,6 @@ docker run --rm \
     sh -c "npm ci && npm test"
 
 if [ "${RUN_E2E}" != "1" ]; then
-    echo "=== E2E Tests Skipped ==="
-    echo "Set RUN_E2E=1 to execute the Playwright suite."
     exit 0
 fi
 
